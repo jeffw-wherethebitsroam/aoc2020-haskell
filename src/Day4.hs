@@ -7,26 +7,16 @@ import Data.Char
 import Text.Parsec
 
 fieldParser :: Parsec String () (String, String)
-fieldParser = do
-  name <- many1 letter
-  char ':'
-  value <- many1 (noneOf [' ', '\n'])
-  return (name, value)
+fieldParser = (,) <$> many1 letter <*> (char ':' *> many1 (noneOf [' ', '\n']))
 
 passportParser :: Parsec String () [(String, String)]
-passportParser = many $ do
-  field <- fieldParser
-  oneOf [' ', '\n']
-  return field
+passportParser = many (fieldParser >>= \f -> oneOf [' ', '\n'] >> return f)
 
 fileParser :: Parsec String () [[(String, String)]]
 fileParser = sepBy passportParser (char '\n')
 
 hgtParser :: Parsec String () (Int, String)
-hgtParser = do
-  num <- many1 digit
-  unit <- many1 letter
-  return (read num, unit)
+hgtParser = (\a b -> (read a, b)) <$> many1 digit <*> many1 letter
 
 hasKey key = any (\(k, _) -> k == key)
 
