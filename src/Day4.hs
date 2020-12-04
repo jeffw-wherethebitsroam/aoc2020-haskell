@@ -4,56 +4,68 @@ module Day4
 where
 
 import Data.Char
-import Data.List.Split
+import Text.Parsec
 
-hasKey k = any (\x -> head x == k)
+fieldParser :: Parsec String () (String, String)
+fieldParser = do
+  name <- many1 letter
+  char ':'
+  value <- many1 (noneOf [' ', '\n'])
+  return (name, value)
 
-hasRquiredKeys s = all (`hasKey` s) ["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"]
+passportParser :: Parsec String () [(String, String)]
+passportParser = many $ do
+  field <- fieldParser
+  oneOf [' ', '\n']
+  return field
 
-parsePassport :: String -> [[String]]
-parsePassport = map (splitOn ":") . splitOneOf " \n"
+fileParser :: Parsec String () [[(String, String)]]
+fileParser = sepBy passportParser (char '\n')
 
-validDate min max s = do
-  let date = (read :: String -> Int) s
-  date >= min && date <= max
+hgtParser :: Parsec String () (Int, String)
+hgtParser = do
+  num <- many1 digit
+  unit <- many1 letter
+  return (read num, unit)
 
-validHgt s = do
-  -- wtf :)
-  let p = split (dropFinalBlank $ condense $ whenElt isLetter) s
-  length p == 2 && case p !! 1 of
-    "cm" -> validHgt' 150 193 (head p)
-    "in" -> validHgt' 59 76 (head p)
+hasKey key = any (\(k, _) -> k == key)
+
+hasRequiredKeys s = all (`hasKey` s) ["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"]
+
+validDate min max s = inRange min max (read s)
+
+validHgt :: String -> Bool
+validHgt s = case parse hgtParser "" s of
+  Left _ -> False
+  Right (n, u) -> case u of
+    "cm" -> inRange 150 193 n
+    "in" -> inRange 59 76 n
     _ -> False
 
-validHgt' min max s = do
-  let h = (read :: String -> Int) s
-  h >= min && h <= max
+inRange min max h = h >= min && h <= max
 
-validHcl (a : as) = a == '#' && length as == 6 && all isHexDigit as
-
-validEcl s = s `elem` ["amb", "blu", "brn", "gry", "grn", "hzl", "oth"]
-
-validPid s = length s == 9 && all isDigit s
-
+validator :: String -> String -> Bool
 validator f = case f of
   "byr" -> validDate 1920 2002
   "iyr" -> validDate 2010 2020
   "eyr" -> validDate 2020 2030
   "hgt" -> validHgt
-  "hcl" -> validHcl
-  "ecl" -> validEcl
-  "pid" -> validPid
+  "hcl" -> \(a : as) -> a == '#' && length as == 6 && all isHexDigit as
+  "ecl" -> \s -> s `elem` ["amb", "blu", "brn", "gry", "grn", "hzl", "oth"]
+  "pid" -> \s -> length s == 9 && all isDigit s
   _ -> const True
 
-valid = all (\p -> validator (head p) (p !! 1))
+valid = all (uncurry validator)
 
 run :: IO ()
 run = do
   content <- readFile "../day4.txt"
-  let passports = map parsePassport (splitOn "\n\n" content)
-  print (head passports)
 
-  let v1 = filter hasRquiredKeys passports
+  let passports = case parse fileParser "" content of
+        Left _ -> error "parse error"
+        Right p -> p
+
+  let v1 = filter hasRequiredKeys passports
   print (length v1)
 
   let v2 = filter valid v1
