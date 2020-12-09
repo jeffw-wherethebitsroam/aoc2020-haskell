@@ -21,7 +21,7 @@ findSum s (d : ds) = do
 
 test :: Int -> [Int] -> Int -> Maybe [Int]
 test s ds spl = do
-  let (xs, _) = splitAt spl ds
+  let xs = take spl ds
   let sm = sum xs
   if sm == s
     then Just xs
@@ -33,13 +33,11 @@ test s ds spl = do
 run :: IO ()
 run = do
   content <- readFile "../day9.txt"
-
   let x = map (\b -> read b :: Int) (lines content)
 
-  let (p, d) = splitAt 0 x
+  let (p, d) = splitAt 25 x
   let p1 = exec p d
   print p1
 
-  let p2 = findSum 731031916 x
-  print p2
+  let p2 = findSum p1 x
   print (minimum p2 + maximum p2)
