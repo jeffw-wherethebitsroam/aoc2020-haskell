@@ -3,15 +3,17 @@ module Day9
   )
 where
 
+import Data.List
+
 sums :: [Int] -> [Int]
 sums (p : ps) = map (+ p) ps ++ sums ps
 sums [] = []
 
 exec :: [Int] -> [Int] -> Int
 exec (p : ps) (d : ds) = do
-  if d `elem` sums (p : ps)
-    then exec (ps ++ [d]) ds
-    else d
+  case find (== d) (sums (p : ps)) of
+    Just _ -> exec (ps ++ [d]) ds
+    Nothing -> d
 
 findSum :: Int -> [Int] -> [Int]
 findSum s (d : ds) = do
