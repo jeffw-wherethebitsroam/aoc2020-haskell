@@ -17,7 +17,8 @@ paths' :: [(Int, Int)] -> [Int] -> [(Int, Int)]
 paths' acc [] = acc
 paths' acc (a : as) = do
   let p = (sum . map snd . reachable) acc
-  paths' ((a, p) : acc) as
+  -- optimisation: we need a max of the last 3 values in the acc list
+  paths' ((a, p) : take 2 acc) as
   where
     -- all reachable previous states
     reachable = filter (\(x, _) -> a <= x + 3)
