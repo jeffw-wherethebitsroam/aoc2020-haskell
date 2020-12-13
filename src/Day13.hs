@@ -16,9 +16,11 @@ load2 (_ : ss) = do
   let ys = zip [0 ..] (splitOn "," (head ss))
   let ys' = filter (\x -> snd x /= "x") ys
   let ys'' = map (second read) ys'
-  let ys''' = map (\(a, b) -> ((b - a) `mod` b, b)) ys''
-  ys'''
+  -- convert the delay to the modulo remainder
+  map (\(a, b) -> ((b - a) `mod` b, b)) ys''
 
+-- https://en.wikipedia.org/wiki/Chinese_remainder_theorem -> this is the sieve
+-- this is only efficient if (a1,b1) are the big numbers
 findSoln (a1, b1) (a2, b2) = if a1 `mod` b2 == a2 then (a1, b1 * b2) else findSoln (a1 + b1, b1) (a2, b2)
 
 solve (i : is) = foldl findSoln i is
