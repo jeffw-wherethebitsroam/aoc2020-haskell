@@ -23,8 +23,6 @@ load2 (_ : ss) = do
 -- this is only efficient if (a1,b1) are the big numbers
 findSoln (a1, b1) (a2, b2) = if a1 `mod` b2 == a2 then (a1, b1 * b2) else findSoln (a1 + b1, b1) (a2, b2)
 
-solve (i : is) = foldl findSoln i is
-
 run :: IO ()
 run = do
   content <- readFile "../day13.txt"
@@ -37,5 +35,5 @@ run = do
   let i2 = load2 (lines content)
   print i2
 
-  let soln = solve i2
+  let soln = foldl1 findSoln i2
   print soln

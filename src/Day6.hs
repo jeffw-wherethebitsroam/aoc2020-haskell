@@ -19,9 +19,7 @@ countDistinct :: [Char] -> [(Char, Int)]
 countDistinct = map (\xs@(x : _) -> (x, length xs)) . group . sort
 
 rowCount2_v2 :: [Char] -> Int
-rowCount2_v2 = length . nub . inter . split (dropFinalBlank $ dropDelims $ oneOf "\n")
-
-inter (a : as) = foldl intersect a as
+rowCount2_v2 = length . nub . foldl1 intersect . split (dropFinalBlank $ dropDelims $ oneOf "\n")
 
 run :: IO ()
 run = do
