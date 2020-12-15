@@ -62,14 +62,7 @@ mkFloating acc n (c : cs) = case c of
   _ -> mkFloating acc (n * 2) cs
 
 applyMask2 :: (Int, [Int]) -> Int -> [Int]
-applyMask2 (o, fs) v = do
-  let v' = v .|. o
-  applyFloating [v'] fs
-
-applyFloating acc [] = acc
-applyFloating acc (f : fs) = do
-  let xored = map (`xor` f) acc
-  applyFloating (acc ++ xored) fs
+applyMask2 (o, fs) v = foldl' (\acc f -> acc ++ map (`xor` f) acc) [v .|. o] fs
 
 toInt :: Int -> Char -> Int
 toInt x c = case c of
