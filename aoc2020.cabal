@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ad2c5f5c668589f39edcf19678417ee467c318089ce537f9204ceb4d8a3015c8
+-- hash: c70ea468f80e3bf3402ceaf6713a635eeaa3678ef8e876d56026bfecc75ebbaa
 
 name:           aoc2020
 version:        0.1.0.0
@@ -35,6 +35,7 @@ library
       Day13
       Day14
       Day15
+      Day16
       Day2
       Day3
       Day4
@@ -50,6 +51,7 @@ library
   build-depends:
       base >=4.7 && <5
     , containers
+    , criterion
     , parsec
     , split
   default-language: Haskell2010
@@ -65,6 +67,7 @@ executable aoc2020-exe
       aoc2020
     , base >=4.7 && <5
     , containers
+    , criterion
     , parsec
     , split
   default-language: Haskell2010
@@ -81,6 +84,24 @@ test-suite aoc2020-test
       aoc2020
     , base >=4.7 && <5
     , containers
+    , criterion
+    , parsec
+    , split
+  default-language: Haskell2010
+
+benchmark aoc2020-bench
+  type: exitcode-stdio-1.0
+  main-is: Bench.hs
+  other-modules:
+      Paths_aoc2020
+  hs-source-dirs:
+      bench
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -with-rtsopts=-T
+  build-depends:
+      aoc2020
+    , base >=4.7 && <5
+    , containers
+    , criterion
     , parsec
     , split
   default-language: Haskell2010
