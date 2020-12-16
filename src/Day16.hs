@@ -3,6 +3,7 @@ module Day16
   )
 where
 
+import Data.Bifunctor
 import Data.List
 import qualified Text.Parsec as P
 
@@ -35,44 +36,42 @@ parseFile = do
 
 inRanges rs x = any (\(l, h) -> x >= l && x <= h) rs
 
-notInRanges rs x = not (inRanges rs x)
+validCol :: (Int, Int) -> (Int, Int) -> [Int] -> Bool
+validCol r1 r2 = all (inRanges [r1, r2])
 
-validCol :: (Int, Int) -> (Int, Int) -> Int -> [[Int]] -> Bool
-validCol r1 r2 i = all (\t -> inRanges [r1, r2] (t !! i))
+matchingIndexes cols (name, r1, r2) = do
+  let m = filter (\(_, cs) -> validCol r1 r2 cs) (zip [0 ..] cols)
+  (name, map fst m)
 
-process :: [(String, Int)] -> [(String, [Int])] -> [(String, Int)]
-process out [] = out
-process out cols = do
+process :: [(String, [Int])] -> [(String, Int)]
+process [] = []
+process cols = do
   case find (\(n, cs) -> length cs == 1) cols of
     Nothing -> error ("blah: " ++ show cols)
     Just (name, cs) -> do
       let col = head cs
-      let x = map (\(n, c) -> (n, filter (/= col) c)) (filter (\(n, _) -> n /= name) cols)
-      process ((name, col) : out) x
+      -- filter out the found name and column id
+      let x = map (second (filter (/= col))) (filter (\(n, _) -> n /= name) cols)
+      (name, col) : process x
 
 run :: IO ()
 run = do
   content <- readFile "../day16.txt"
-  let (r, y, n) = case P.parse parseFile "" content of
+  let (rules, yours, nearby) = case P.parse parseFile "" content of
         Left _ -> error "parse error"
         Right x -> x
 
-  let ranges = concatMap (\(n, r1, r2) -> [r1, r2]) r
+  let ranges = concatMap (\(n, r1, r2) -> [r1, r2]) rules
 
-  let outside = filter (notInRanges ranges) (concat n)
+  -- part 1
+  let outside = filter (not . inRanges ranges) (concat nearby)
   print (sum outside)
 
-  let cols = [0 .. (length y - 1)]
-
-  let tickets = y : n
-  let valid = filter (all (inRanges ranges)) tickets
-
-  let validCols = map (\(n, r1, r2) -> (n, filter (\i -> validCol r1 r2 i valid) cols)) r
-  -- print validCols
-
-  let p2 = process [] validCols
-  print p2
-
+  -- part 2
+  let validTickets = filter (all (inRanges ranges)) (yours : nearby)
+  let t = transpose validTickets
+  let validCols = map (matchingIndexes t) rules
+  let p2 = process validCols
   let a = map snd (filter (\(n, _) -> "departure" `isPrefixOf` n) p2)
-  let mine = map (y !!) a
+  let mine = map (yours !!) a
   print (product mine)
