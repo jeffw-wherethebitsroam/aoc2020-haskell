@@ -19,7 +19,7 @@ parseRange = do
   P.char '-'
   h2 <- P.many1 P.digit
   P.char '\n'
-  return (name, (read l1 :: Int, read h1 :: Int), (read l2 :: Int, read h2 :: Int))
+  return (name, [(read l1 :: Int, read h1 :: Int), (read l2 :: Int, read h2 :: Int)])
 
 parseTicket = do
   fields <- P.sepBy (P.many1 P.digit) (P.char ',')
@@ -36,11 +36,11 @@ parseFile = do
 
 inRanges rs x = any (\(l, h) -> x >= l && x <= h) rs
 
-validCol :: (Int, Int) -> (Int, Int) -> [Int] -> Bool
-validCol r1 r2 = all (inRanges [r1, r2])
+validCol :: [(Int, Int)] -> [Int] -> Bool
+validCol = all . inRanges
 
-matchingIndexes cols (name, r1, r2) = do
-  let m = filter (\(_, cs) -> validCol r1 r2 cs) (zip [0 ..] cols)
+matchingIndexes cols (name, rs) = do
+  let m = filter (\(_, cs) -> validCol rs cs) (zip [0 ..] cols)
   (name, map fst m)
 
 process :: [(String, [Int])] -> [(String, Int)]
@@ -61,7 +61,7 @@ run = do
         Left _ -> error "parse error"
         Right x -> x
 
-  let ranges = concatMap (\(n, r1, r2) -> [r1, r2]) rules
+  let ranges = concatMap snd rules
 
   -- part 1
   let outside = filter (not . inRanges ranges) (concat nearby)
