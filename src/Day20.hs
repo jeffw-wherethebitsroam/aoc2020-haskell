@@ -6,7 +6,9 @@ where
 import Array
 import Data.Bifunctor
 import Data.List
+import Data.List.Split
 import Data.Maybe
+import Debug.Trace
 import qualified Text.Parsec as P
 
 -- id, lines, hash (lowest,clockwise), matches
@@ -25,19 +27,28 @@ printTile ti = do
   let tile = tiTile ti
   intercalate "\n" tile
 
-printTiles2 :: [((Int, Int), TileInfo)] -> String
-printTiles2 tis = do
-  let tiles = map (\(_, ti) -> tiTile ti) tis
-  let zt = zip (head tiles) (tiles !! 1)
-  let blah = map (\(t1, t2) -> t1 ++ " " ++ t2) zt
-  intercalate "\n" blah
+trimTile :: [[Char]] -> [[Char]]
+trimTile tile = do
+  let trimRows = map (take 8 . drop 1) tile
+  take 8 (drop 1 trimRows)
 
-printTiles3 :: [((Int, Int), TileInfo)] -> String
-printTiles3 tis = do
-  let tiles = map (\(_, ti) -> tiTile ti) tis
-  let zt = zip3 (head tiles) (tiles !! 1) (tiles !! 2)
-  let blah = map (\(t1, t2, t3) -> t1 ++ " " ++ t2 ++ " " ++ t3) zt
-  intercalate "\n" blah
+printTiles :: Int -> [[[Char]]] -> String
+printTiles dim tiles = do
+  let lines = chunksOf dim tiles
+  let rowsRows = map transpose lines
+  (intercalate "\n\n" . map (intercalate "\n" . map unwords)) rowsRows
+
+toRows :: Int -> [[[Char]]] -> [[Char]]
+toRows dim tiles = do
+  let lines = chunksOf dim tiles
+  let rowsRows = map transpose lines
+  concatMap (map concat) rowsRows
+
+toArray :: [[Char]] -> Array.Array (Int, Int) Char
+toArray rows = do
+  let l = length rows
+  let enum = concat (zipWith (\i r -> zipWith (\j c -> ((i, j), c)) [0 ..] r) [0 ..] rows)
+  Array.array ((0, 0), (l -1, l -1)) enum
 
 parseTile :: P.Parsec String () (Int, [[Char]])
 parseTile = do
@@ -77,7 +88,6 @@ findDim n x = if x * x == n then x else findDim n (x + 1)
 
 findDim1 x = findDim x 1
 
--- arrange :: Int -> [TileInfo] -> [((Int, Int), TileInfo)] -> [(Int, Int)] -> ([Int], [Maybe Int])
 arrange dim tinfo acc [] = acc
 arrange dim tinfo acc (i : is) = do
   let (shp, hs) = constraints dim acc i
@@ -128,9 +138,19 @@ neighbourHash acc dir ix = case find (\x -> fst x == ix) acc of
   Nothing -> Nothing
   Just (_, ti) -> Just (tiHash ti !! dir)
 
+findSeaMonsters :: Array.Array (Int, Int) Char -> [(Int, Int)] -> [(Int, Int)] -> Int
+findSeaMonsters ary sm [] = 0
+findSeaMonsters ary sm (i : is) = do
+  let sma = smAt i sm
+  let x = if all (\i -> ary ! i == '#') sma then 1 else 0
+  x + findSeaMonsters ary sm is
+
+smAt :: (Int, Int) -> [(Int, Int)] -> [(Int, Int)]
+smAt (x, y) = map (\(a, b) -> (a + x, b + y))
+
 run :: IO ()
 run = do
-  content <- readFile "../day20-test.txt"
+  content <- readFile "../day20.txt"
   let tiles = case P.parse parseFile "" content of
         Right x -> x
         Left x -> error ("parse error: " ++ show x)
@@ -149,13 +169,43 @@ run = do
 
   let dim = findDim1 (length tiles)
   let bnds = range ((0, 0), (dim -1, dim -1))
-  print bnds
+  -- print bnds
 
-  let xs = arrange dim tileInfo [] [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2)]
-  print xs
+  let xs = arrange dim tileInfo [] bnds
+
+  -- make the tiles
+  let ts = map (\(_, ti) -> tiTile ti) xs
   putStrLn " "
-  putStrLn (printTiles3 (take 3 xs))
+  putStrLn (printTiles dim ts)
   putStrLn " "
-  putStrLn (printTiles3 (take 3 (drop 3 xs)))
-  putStrLn " "
-  putStrLn (printTiles3 (take 3 (drop 6 xs)))
+  let r1 = toRows dim (map trimTile ts)
+  putStrLn (intercalate "\n" r1)
+
+  let l = length r1
+
+  --  01234567890123456789
+  -- 0                  #
+  -- 1#    ##    ##    ###
+  -- 2 #  #  #  #  #  #
+  let seaMonster = [(0, 18), (1, 0), (1, 5), (1, 6), (1, 11), (1, 12), (1, 17), (1, 18), (1, 19), (2, 1), (2, 4), (2, 7), (2, 10), (2, 13), (2, 16)]
+
+  let smx = 15
+
+  let count = sum (map (length . filter (== '#')) r1)
+  print count
+
+  let x1 = findSeaMonsters (toArray r1) seaMonster (range ((0, 0), (l -3, l -20)))
+  print x1
+  print (count - x1 * smx)
+  let r2 = transpose r1
+  let x2 = findSeaMonsters (toArray r2) seaMonster (range ((0, 0), (l -3, l -20)))
+  print x2
+  print (count - x2 * smx)
+  let r3 = reverse r2
+  let x3 = findSeaMonsters (toArray r3) seaMonster (range ((0, 0), (l -3, l -20)))
+  print x3
+  print (count - x3 * smx)
+  let r4 = transpose r3
+  let x4 = findSeaMonsters (toArray r4) seaMonster (range ((0, 0), (l -3, l -20)))
+  print x4
+  print (count - x4 * smx)
