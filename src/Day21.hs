@@ -47,7 +47,7 @@ run = do
         Left x -> error ("parse error: " ++ show x)
 
   let s = foldr addLine Map.empty list
-  -- get the list of possible allergens
+  -- get the set of all possible allergens
   let excl = Map.foldr Set.union Set.empty s
   -- get all occurances on ingredients not in the allergens set
   let safe = foldr (\(ingrs, _) acc -> acc ++ filter (`Set.notMember` excl) ingrs) [] list
