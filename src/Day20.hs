@@ -8,7 +8,6 @@ import Data.Bifunctor
 import Data.List
 import Data.List.Split
 import Data.Maybe
-import Debug.Trace
 import qualified Text.Parsec as P
 
 -- id, lines, hash (lowest,clockwise), matches
@@ -68,11 +67,7 @@ tileEdges s = do
   let r = lowestHash (last s')
   [t, r, b, l]
 
--- returns the hash and whether it was reversed
-lowestHash s = do
-  let h1 = hashEdge s
-  let h2 = hashEdge (reverse s)
-  if h1 < h2 then h1 else h2
+lowestHash s = minimum [hashEdge s, hashEdge (reverse s)]
 
 -- ..##.#..#.
 hashEdge = binToInt . map (\x -> if x == '#' then 1 else 0)
@@ -94,7 +89,7 @@ arrange dim tinfo acc (i : is) = do
   let choice = head (filter (\ti -> (shape ti == sum shp) && matchesHashes hs ti) tinfo)
 
   -- transpose/reverse to match the expected shape and hashes
-  let final = transposeMatch 8 hs shp choice
+  let final = transposeMatch hs shp choice
 
   let rest = filter (\ti -> tiId ti /= tiId final) tinfo
 
@@ -110,11 +105,9 @@ matchMaybe m i = case m of
 
 match mhs shp ti = tiShape ti == shp && matchHash mhs (tiHash ti)
 
-transposeMatch 0 _ _ _ = error "bad match"
-transposeMatch n mhs shp ti = if match mhs shp ti then ti else reverseMatch (n -1) mhs shp (transposeTile ti)
+transposeMatch mhs shp ti = if match mhs shp ti then ti else reverseMatch mhs shp (transposeTile ti)
 
-reverseMatch 0 _ _ _ = error "bad match"
-reverseMatch n mhs shp ti = if match mhs shp ti then ti else transposeMatch (n -1) mhs shp (reverseTile ti)
+reverseMatch mhs shp ti = if match mhs shp ti then ti else transposeMatch mhs shp (reverseTile ti)
 
 shape :: TileInfo -> Int
 shape ti = sum (tiShape ti)
@@ -139,11 +132,9 @@ neighbourHash acc dir ix = case find (\x -> fst x == ix) acc of
   Just (_, ti) -> Just (tiHash ti !! dir)
 
 findSeaMonsters :: Array.Array (Int, Int) Char -> [(Int, Int)] -> [(Int, Int)] -> Int
-findSeaMonsters ary sm [] = 0
-findSeaMonsters ary sm (i : is) = do
-  let sma = smAt i sm
-  let x = if all (\i -> ary ! i == '#') sma then 1 else 0
-  x + findSeaMonsters ary sm is
+findSeaMonsters ary sm = length . filter id . map isSeaMonster
+  where
+    isSeaMonster idx = all (\j -> ary ! j == '#') (smAt idx sm)
 
 smAt :: (Int, Int) -> [(Int, Int)] -> [(Int, Int)]
 smAt (x, y) = map (\(a, b) -> (a + x, b + y))
@@ -165,22 +156,16 @@ run = do
   let corners = map (\(id, _, _) -> id) (filter (\(_, _, x) -> sum x == 6) edgeInfo)
   print (product corners)
 
-  let tileInfo = zipWith (curry (\((id, tile), (_, hs, mc)) -> TileInfo id tile hs mc)) tiles edgeInfo
+  -- part 2
 
+  let tileInfo = zipWith (curry (\((id, tile), (_, hs, mc)) -> TileInfo id tile hs mc)) tiles edgeInfo
   let dim = findDim1 (length tiles)
   let bnds = range ((0, 0), (dim -1, dim -1))
-  -- print bnds
-
   let xs = arrange dim tileInfo [] bnds
 
   -- make the tiles
   let ts = map (\(_, ti) -> tiTile ti) xs
-  putStrLn " "
-  putStrLn (printTiles dim ts)
-  putStrLn " "
   let r1 = toRows dim (map trimTile ts)
-  putStrLn (intercalate "\n" r1)
-
   let l = length r1
 
   --  01234567890123456789
