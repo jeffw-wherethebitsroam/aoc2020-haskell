@@ -8,6 +8,7 @@ import Data.Bifunctor
 import Data.List
 import Data.List.Split
 import Data.Maybe
+import Debug.Trace
 import qualified Text.Parsec as P
 
 -- id, lines, hash (lowest,clockwise), matches
@@ -89,7 +90,8 @@ arrange dim tinfo acc (i : is) = do
   let choice = head (filter (\ti -> (shape ti == sum shp) && matchesHashes hs ti) tinfo)
 
   -- transpose/reverse to match the expected shape and hashes
-  let final = transposeMatch hs shp choice
+  let finalx = transposeMatch hs shp choice
+  let final = trace (show finalx ++ "\n" ++ printTile finalx) finalx
 
   let rest = filter (\ti -> tiId ti /= tiId final) tinfo
 
@@ -131,17 +133,25 @@ neighbourHash acc dir ix = case find (\x -> fst x == ix) acc of
   Nothing -> Nothing
   Just (_, ti) -> Just (tiHash ti !! dir)
 
-findSeaMonsters :: Array.Array (Int, Int) Char -> [(Int, Int)] -> [(Int, Int)] -> Int
-findSeaMonsters ary sm = length . filter id . map isSeaMonster
-  where
-    isSeaMonster idx = all (\j -> ary ! j == '#') (smAt idx sm)
+--  01234567890123456789
+-- 0                  #
+-- 1#    ##    ##    ###
+-- 2 #  #  #  #  #  #
+seaMonster = [(0, 18), (1, 0), (1, 5), (1, 6), (1, 11), (1, 12), (1, 17), (1, 18), (1, 19), (2, 1), (2, 4), (2, 7), (2, 10), (2, 13), (2, 16)]
 
-smAt :: (Int, Int) -> [(Int, Int)] -> [(Int, Int)]
-smAt (x, y) = map (\(a, b) -> (a + x, b + y))
+seaMonsterAt :: (Int, Int) -> [(Int, Int)]
+seaMonsterAt (x, y) = map (\(a, b) -> (a + x, b + y)) seaMonster
+
+-- (f . g . h) x => f(g(h(x)))
+findSeaMonsters :: Int -> Array.Array (Int, Int) Char -> Int
+findSeaMonsters size ary = (length . filter id . map isSeaMonster) idxs
+  where
+    idxs = range ((0, 0), (size - 3, size - 20))
+    isSeaMonster idx = all (\j -> ary ! j == '#') (seaMonsterAt idx)
 
 run :: IO ()
 run = do
-  content <- readFile "../day20.txt"
+  content <- readFile "../day20-test.txt"
   let tiles = case P.parse parseFile "" content of
         Right x -> x
         Left x -> error ("parse error: " ++ show x)
@@ -168,29 +178,25 @@ run = do
   let r1 = toRows dim (map trimTile ts)
   let l = length r1
 
-  --  01234567890123456789
-  -- 0                  #
-  -- 1#    ##    ##    ###
-  -- 2 #  #  #  #  #  #
-  let seaMonster = [(0, 18), (1, 0), (1, 5), (1, 6), (1, 11), (1, 12), (1, 17), (1, 18), (1, 19), (2, 1), (2, 4), (2, 7), (2, 10), (2, 13), (2, 16)]
-
   let smx = 15
 
   let count = sum (map (length . filter (== '#')) r1)
   print count
 
-  let x1 = findSeaMonsters (toArray r1) seaMonster (range ((0, 0), (l -3, l -20)))
+  print (bounds (toArray r1))
+
+  let x1 = findSeaMonsters l (toArray r1)
   print x1
   print (count - x1 * smx)
   let r2 = transpose r1
-  let x2 = findSeaMonsters (toArray r2) seaMonster (range ((0, 0), (l -3, l -20)))
+  let x2 = findSeaMonsters l (toArray r2)
   print x2
   print (count - x2 * smx)
   let r3 = reverse r2
-  let x3 = findSeaMonsters (toArray r3) seaMonster (range ((0, 0), (l -3, l -20)))
+  let x3 = findSeaMonsters l (toArray r3)
   print x3
   print (count - x3 * smx)
   let r4 = transpose r3
-  let x4 = findSeaMonsters (toArray r4) seaMonster (range ((0, 0), (l -3, l -20)))
+  let x4 = findSeaMonsters l (toArray r4)
   print x4
   print (count - x4 * smx)

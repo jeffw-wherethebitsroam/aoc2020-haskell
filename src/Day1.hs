@@ -29,8 +29,7 @@ find2 [] = Nothing
 run :: IO ()
 run = do
   content <- readFile "../day1.txt"
-  let linesOfFile = lines content
-  let i = map (read :: String -> Int) linesOfFile
+  let i = map (read :: String -> Int) (lines content)
 
   case find2 i of
     Just (a, b) -> do

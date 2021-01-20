@@ -5,23 +5,21 @@ where
 
 import Data.List
 
-diffs :: [Int] -> [Int]
-diffs (a1 : a2 : as) = a2 - a1 : diffs (a2 : as)
 -- last diff is always 3
-diffs [_] = [3]
+diff :: [Int] -> [Int]
+diff xs = zipWith (-) xs (0 : xs) ++ [3]
 
 paths :: [Int] -> [(Int, Int)]
-paths = paths' [(0, 1)]
+paths = foldl' blah [(0, 1)]
 
-paths' :: [(Int, Int)] -> [Int] -> [(Int, Int)]
-paths' acc [] = acc
-paths' acc (a : as) = do
-  let p = (sum . map snd . reachable) acc
+blah :: [(Int, Int)] -> Int -> [(Int, Int)]
+blah acc a = do
+  let p = (sum . map snd . filter reachable) acc
   -- optimisation: we need a max of the last 3 values in the acc list
-  paths' ((a, p) : take 2 acc) as
+  (a, p) : take 2 acc
   where
     -- all reachable previous states
-    reachable = filter (\(x, _) -> a <= x + 3)
+    reachable x = a <= fst x + 3
 
 run :: IO ()
 run = do
@@ -29,9 +27,9 @@ run = do
   let x = map (\b -> read b :: Int) (lines content)
   let y = sort x
 
-  let d = diffs (0 : y)
+  let d = diff y
   let ones = (length . filter (== 1)) d
   let threes = (length . filter (== 3)) d
   print (ones * threes)
 
-  print (paths y)
+  print (head (paths y))
