@@ -76,7 +76,7 @@ hashEdge = binToInt . map (\x -> if x == '#' then 1 else 0)
 binToInt :: [Int] -> Int
 binToInt = foldl' (\acc x -> acc * 2 + x) 0
 
-goupCount = map (\xs@(x : _) -> (x, length xs)) . group . sort
+groupCount = map (\xs@(x : _) -> (x, length xs)) . group . sort
 
 toScores cnts = map (\e -> snd (head (filter (\x -> e == fst x) cnts)))
 
@@ -159,7 +159,7 @@ run = do
   let edges = map (second tileEdges) tiles
 
   -- get the counts for each edge hash. This gives the number of matches
-  let counts = goupCount (concatMap snd edges)
+  let counts = groupCount (concatMap snd edges)
   let edgeInfo = map (\(id, hs) -> (id, hs, toScores counts hs)) edges
 
   -- corners will have a score of 6

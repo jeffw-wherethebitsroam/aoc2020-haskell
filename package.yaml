@@ -25,6 +25,8 @@ dependencies:
 - containers
 - parsec
 - criterion
+- mtl
+- array
 
 library:
   source-dirs: src
